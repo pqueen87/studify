@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studify — Interactive Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- Supabase JS client (UMD — exposes window.supabase) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Project config (fill in your keys) then client init -->
+<script src="config.js"></script>
+<script src="lib/supabase.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #080810; font-family: 'Space Grotesk', sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+  .stage {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 24px 16px; gap: 48px;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(123,97,255,0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(216,27,138,0.06) 0%, transparent 60%),
+                #080810;
+  }
+
+  .device-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .device-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.2);
+  }
+
+  /* iPhone bezel */
+  .phone {
+    width: 390px; height: 780px;
+    background: #0A0A0F;
+    border-radius: 52px;
+    border: 1.5px solid rgba(255,255,255,0.10);
+    overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 40px 100px rgba(0,0,0,0.7),
+      0 0 80px rgba(123,97,255,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 50px; display: flex; align-items: center;
+    padding: 12px 28px 0; flex-shrink: 0; position: relative; z-index: 20;
+  }
+  .status-time { font-size: 15px; font-weight: 700; color: #F0F0FF; letter-spacing: -0.01em; }
+  .status-right { margin-left: auto; display: flex; align-items: center; gap: 6px; color: #F0F0FF; }
+
+  /* Dynamic island */
+  .dynamic-island {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 34px; background: #000;
+    border-radius: 9999px; z-index: 50;
+  }
+
+  /* Content area */
+  .phone-content {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1;
+  }
+
+  /* Home indicator */
+  .home-indicator {
+    height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: #0A0A0F;
+  }
+  .home-indicator-bar {
+    width: 130px; height: 5px; background: rgba(255,255,255,0.22); border-radius: 9999px;
+  }
+
+  /* Noise texture */
+  .phone::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 150px;
+    opacity: 0.5;
+  }
+
+  /* Tweaks panel */
+  .tweaks-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: #13131A; border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px; padding: 18px 20px; width: 240px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    font-family: 'Space Grotesk', sans-serif;
+    animation: slideUp 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .tweaks-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #505065; margin-bottom: 14px; }
+  .tweak-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tweak-label { font-size: 13px; color: #9090A8; }
+  .tweak-nav-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; color: #9090A8; font-size: 11px; font-weight: 600;
+    padding: 5px 10px; cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+    transition: background 0.15s;
+  }
+  .tweak-nav-btn:hover { background: rgba(255,255,255,0.10); color: #F0F0FF; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="StudifyComponents.jsx"></script>
+<script type="text/babel" src="StudifyScreens.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const TWEAK_DEFAULTS = {
+  "accentColor": "#9B59B6",
+  "username": "Valeria",
+  "showMiniPlayer": true
+};
+
+function App() {
+  const [screen, setScreen] = useState('splash');
+  const [authMode, setAuthMode] = useState('login');
+  const [user, setUser] = useState(null);
+  const [activeSong, setActiveSong] = useState(SONGS_DATA[0]);
+  const [miniPlaying, setMiniPlaying] = useState(false);
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [showTweaks, setShowTweaks] = useState(false);
+
+  // Restore session on page load + listen for sign-in / sign-out
+  useEffect(() => {
+    window.db.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) { setUser(session.user); setScreen('home'); }
+    });
+    const { data: { subscription } } = window.db.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        setScreen('home');
+      }
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setScreen('splash');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const nav = (s) => {
+    setScreen(s);
+    try { localStorage.setItem('studify_v2_screen', s); } catch {}
+  };
+
+  const playSong = (song) => {
+    setActiveSong(song);
+    nav('player');
+    setMiniPlaying(true);
+  };
+
+  const navItems = ['home', 'create', 'playlists', 'profile'];
+  const authScreens = ['splash', 'auth', 'processing'];
+  const showNav = !authScreens.includes(screen);
+  const activeNavTab = navItems.includes(screen) ? screen : screen === 'player' ? 'playlists' : 'home';
+  const showMini = tweaks.showMiniPlayer && activeSong && screen !== 'player' && screen !== 'create' && showNav;
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  return (
+    <div className="stage">
+      <div className="device-wrap">
+        <div className="device-label">Studify · iOS 18 · Dark Mode</div>
+
+        <div className="phone">
+          {/* Dynamic island */}
+          <div className="dynamic-island" />
+
+          {/* Status bar */}
+          <div className="status-bar">
+            <span className="status-time">{timeStr}</span>
+            <div className="status-right">
+              {/* Signal */}
+              <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor">
+                <rect x="0" y="8" width="3" height="4" rx="1" opacity="0.4"/>
+                <rect x="4.5" y="5" width="3" height="7" rx="1" opacity="0.6"/>
+                <rect x="9" y="2" width="3" height="10" rx="1" opacity="0.8"/>
+                <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+              </svg>
+              {/* WiFi */}
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M1 4.5C4 1.5 12 1.5 15 4.5" opacity="0.4"/>
+                <path d="M3 7C5 5 11 5 13 7" opacity="0.7"/>
+                <path d="M5.5 9.5C6.5 8.5 9.5 8.5 10.5 9.5"/>
+                <circle cx="8" cy="11.5" r="0.8" fill="currentColor" stroke="none"/>
+              </svg>
+              {/* Battery */}
+              <svg width="25" height="12" viewBox="0 0 25 12" fill="currentColor">
+                <rect x="0" y="1" width="21" height="10" rx="2.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                <rect x="22" y="4" width="2.5" height="4" rx="1" opacity="0.5"/>
+                <rect x="1.5" y="2.5" width="16" height="7" rx="1.5"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Screen content */}
+          <div className="phone-content">
+            {screen === 'splash' && <SplashScreen onAuth={mode => { setAuthMode(mode); nav('auth'); }} />}
+            {screen === 'auth' && <AuthScreen mode={authMode} onBack={() => nav('splash')} onSuccess={u => { setUser(u); nav('home'); }} />}
+            {screen === 'processing' && <ProcessingScreen genre="Pop" subject="Biología" onDone={() => nav('home')} onError={() => nav('create')} />}
+            {screen === 'home' && <HomeScreen onNavigate={nav} onPlaySong={playSong} user={user} />}
+            {screen === 'create' && <CreateScreen onBack={() => nav('home')} onPlaySong={playSong} />}
+            {screen === 'playlists' && <PlaylistsScreen onPlaySong={playSong} user={user} onNavigate={nav} />}
+            {screen === 'player' && <PlayerScreen song={activeSong} onBack={() => nav('home')} />}
+            {screen === 'profile' && <ProfileScreen onNavigate={nav} user={user} />}
+
+            {/* Mini player */}
+            {showMini && (
+              <MiniPlayer
+                song={activeSong}
+                playing={miniPlaying}
+                onToggle={() => setMiniPlaying(p => !p)}
+                onExpand={() => nav('player')}
+              />
+            )}
+
+            {/* Bottom nav */}
+            {showNav && <BottomNav active={activeNavTab} onNav={nav} />}
+          </div>
+
+          {/* Home indicator */}
+          <div className="home-indicator"><div className="home-indicator-bar" /></div>
+        </div>
+      </div>
+
+      {/* Tweaks panel */}
+      {showTweaks && (
+        <div className="tweaks-panel">
+          <div className="tweaks-title">Tweaks</div>
+
+          <div className="tweak-row">
+            <span className="tweak-label">Navigate to</span>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {['splash','auth','processing','home','create','playlists','profile'].map(s => (
+                <button key={s} className="tweak-nav-btn"
+                  onClick={() => nav(s)}
+                  style={{ background: screen === s ? 'rgba(155,89,182,0.2)' : undefined, color: screen === s ? '#B39DDB' : undefined }}>
+                  {s.slice(0,3)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="tweak-row">
+            <span className="tweak-label">Mini player</span>
+            <div
+              onClick={() => {
+                const next = !tweaks.showMiniPlayer;
+                setTweaks(t => ({ ...t, showMiniPlayer: next }));
+                window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { showMiniPlayer: next } }, '*');
+              }}
+              style={{ width: 44, height: 26, borderRadius: 9999, background: tweaks.showMiniPlayer ? 'linear-gradient(135deg,#D81B8A,#7B61FF)' : '#1C1C27', border: `1px solid ${tweaks.showMiniPlayer ? 'transparent' : 'rgba(255,255,255,0.08)'}`, position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', top: 3, left: tweaks.showMiniPlayer ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#F0F0FF', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.4)' }} />
+            </div>
+          </div>
+
+          <div className="tweak-row">
+            <span className="tweak-label">Play a song</span>
+            <button className="tweak-nav-btn" onClick={() => playSong(SONGS_DATA[Math.floor(Math.random() * SONGS_DATA.length)])}>
+              Random
+            </button>
+          </div>
+
+          <div className="tweak-row">
+            <span className="tweak-label">Reset state</span>
+            <button className="tweak-nav-btn" onClick={() => { nav('home'); setActiveSong(SONGS_DATA[0]); setMiniPlaying(false); }}>
+              Reset
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
