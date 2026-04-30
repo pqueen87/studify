@@ -19,70 +19,25 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #080810; font-family: 'Space Grotesk', sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
 
-  .stage {
-    display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 24px 16px; gap: 48px;
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(123,97,255,0.08) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(216,27,138,0.06) 0%, transparent 60%),
-                #080810;
-  }
+  /* Full-screen app layout — no phone frame */
+  .stage { display: flex; height: 100vh; height: 100dvh; background: #080810; }
+  .device-wrap { display: flex; flex-direction: column; width: 100%; max-width: 500px; margin: 0 auto; }
+  .device-label { display: none; }
 
-  .device-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  .device-label {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; color: rgba(255,255,255,0.2);
-  }
-
-  /* iPhone bezel */
   .phone {
-    width: 390px; height: 780px;
-    background: #0A0A0F;
-    border-radius: 52px;
-    border: 1.5px solid rgba(255,255,255,0.10);
-    overflow: hidden; position: relative;
+    flex: 1; background: #0A0A0F;
     display: flex; flex-direction: column;
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,0.6),
-      0 40px 100px rgba(0,0,0,0.7),
-      0 0 80px rgba(123,97,255,0.08),
-      inset 0 0 0 1px rgba(255,255,255,0.04);
+    overflow: hidden; position: relative;
   }
 
-  /* Status bar */
-  .status-bar {
-    height: 50px; display: flex; align-items: center;
-    padding: 12px 28px 0; flex-shrink: 0; position: relative; z-index: 20;
-  }
-  .status-time { font-size: 15px; font-weight: 700; color: #F0F0FF; letter-spacing: -0.01em; }
-  .status-right { margin-left: auto; display: flex; align-items: center; gap: 6px; color: #F0F0FF; }
+  /* Hide fake phone chrome — real device has its own */
+  .status-bar { display: none; }
+  .dynamic-island { display: none; }
+  .home-indicator { display: none; }
 
-  /* Dynamic island */
-  .dynamic-island {
-    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-    width: 118px; height: 34px; background: #000;
-    border-radius: 9999px; z-index: 50;
-  }
-
-  /* Content area */
+  /* Content fills all available space */
   .phone-content {
     flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1;
-  }
-
-  /* Home indicator */
-  .home-indicator {
-    height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    background: #0A0A0F;
-  }
-  .home-indicator-bar {
-    width: 130px; height: 5px; background: rgba(255,255,255,0.22); border-radius: 9999px;
-  }
-
-  /* Noise texture */
-  .phone::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    background-size: 150px;
-    opacity: 0.5;
   }
 
   /* Tweaks panel */
@@ -107,21 +62,6 @@
   .tweak-nav-btn:hover { background: rgba(255,255,255,0.10); color: #F0F0FF; }
   ::-webkit-scrollbar { width: 0; height: 0; }
 
-  /* On real mobile/tablet screens: remove the phone frame, fill the viewport */
-  @media (max-width: 768px) {
-    html, body { overflow: hidden; }
-    .stage { display: block; padding: 0; background: #0A0A0F; }
-    .device-wrap { gap: 0; }
-    .device-label { display: none; }
-    .phone {
-      width: 100vw; height: 100vh; height: 100dvh;
-      border-radius: 0; border: none; box-shadow: none;
-    }
-    .phone::after { display: none; }
-    .dynamic-island { display: none; }
-    .status-bar { display: none; }
-    .home-indicator { display: none; }
-  }
 </style>
 </head>
 <body>
